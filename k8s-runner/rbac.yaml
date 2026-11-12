@@ -1,0 +1,65 @@
+# Least privilege: the runner's identity may manage the app in "sw-update" and nothing else.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: gh-runner
+  namespace: gh-runner
+---
+# Namespaced permissions - only inside sw-update.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: deployer
+  namespace: sw-update
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+  - apiGroups: ["apps"]
+    resources: ["replicasets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["services", "configmaps", "secrets", "persistentvolumeclaims"]
+    verbs: ["get", "list", "create", "update", "patch"]
+  - apiGroups: [""]
+    resources: ["pods", "pods/log", "events"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: gh-runner-deployer
+  namespace: sw-update
+subjects:
+  - kind: ServiceAccount
+    name: gh-runner
+    namespace: gh-runner
+roleRef:
+  kind: Role
+  name: deployer
+  apiGroup: rbac.authorization.k8s.io
+---
+# The only cluster-wide right: read/update the sw-update Namespace object itself
+# (kubectl apply -k includes namespace.yaml). resourceNames pins it to that one namespace.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: sw-update-namespace-manager
+rules:
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    resourceNames: ["sw-update"]
+    verbs: ["get", "patch", "update"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: gh-runner-sw-update-namespace
+subjects:
+  - kind: ServiceAccount
+    name: gh-runner
+    namespace: gh-runner
+roleRef:
+  kind: ClusterRole
+  name: sw-update-namespace-manager
+  apiGroup: rbac.authorization.k8s.io

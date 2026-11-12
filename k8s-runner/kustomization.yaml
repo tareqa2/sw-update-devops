@@ -1,0 +1,8 @@
+# Apply once, by hand:  kubectl apply -k k8s-runner/
+# (the Secret gh-runner-token must be created first - see README)
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - rbac.yaml
+  - deployment.yaml

@@ -1,0 +1,58 @@
+# Self-hosted GitHub Actions runner, running as a pod inside Minikube.
+# Jobs labelled [self-hosted, linux, minikube] land here. kubectl inside the pod
+# authenticates with the pod's ServiceAccount token (in-cluster config) - no kubeconfig file.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gh-runner
+  namespace: gh-runner
+  labels:
+    app: gh-runner
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate          # never two runners registering with the same name
+  selector:
+    matchLabels:
+      app: gh-runner
+  template:
+    metadata:
+      labels:
+        app: gh-runner
+    spec:
+      serviceAccountName: gh-runner
+      automountServiceAccountToken: true   # needed: this IS how kubectl authenticates
+      containers:
+        - name: runner
+          image: myoung34/github-runner:2.333.1-ubuntu-noble   # pinned runner version
+          env:
+            - name: REPO_URL
+              value: https://github.com/tareqa2/sw-update
+            - name: RUNNER_SCOPE
+              value: repo
+            - name: RUNNER_NAME
+              value: minikube-runner
+            - name: LABELS
+              value: minikube
+            - name: RUNNER_WORKDIR
+              value: /tmp/runner/work
+            - name: DISABLE_AUTO_UPDATE
+              value: "true"
+            - name: RUNNER_TOKEN                 # one-time registration token, from a Secret
+              valueFrom:
+                secretKeyRef:
+                  name: gh-runner-token
+                  key: RUNNER_TOKEN
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          volumeMounts:
+            - name: work
+              mountPath: /tmp/runner
+      volumes:
+        - name: work
+          emptyDir: {}

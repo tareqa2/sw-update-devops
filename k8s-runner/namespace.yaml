@@ -1,0 +1,7 @@
+# The CI runner lives in its own namespace, separate from the app it deploys.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gh-runner
+  labels:
+    app.kubernetes.io/part-of: sw-update-ci
