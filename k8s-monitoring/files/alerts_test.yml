@@ -1,0 +1,54 @@
+# Unit tests for the alert rules:  promtool test rules files/alerts_test.yml
+rule_files:
+  - alerts.yml
+evaluation_interval: 15s
+tests:
+  - name: backend down fires after 1 minute
+    interval: 15s
+    input_series:
+      - series: 'up{job="sw-update-backend", pod="sw-backend-x"}'
+        values: '1 1 0 0 0 0 0 0'
+    alert_rule_test:
+      - eval_time: 30s
+        alertname: SwUpdateBackendDown
+        exp_alerts: []
+      - eval_time: 1m45s
+        alertname: SwUpdateBackendDown
+        exp_alerts:
+          - exp_labels: {severity: critical, job: sw-update-backend, pod: sw-backend-x}
+            exp_annotations:
+              summary: "sw-update backend is not being scraped"
+              description: "No healthy sw-backend pod has answered /metrics for 1 minute."
+
+  - name: high 5xx ratio fires, healthy traffic does not
+    interval: 1m
+    input_series:
+      - series: 'swupdate_http_requests_total{status="200"}'
+        values: '0+90x15'
+      - series: 'swupdate_http_requests_total{status="500"}'
+        values: '0+10x15'
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: SwUpdateHighErrorRate
+        exp_alerts: []
+      - eval_time: 12m
+        alertname: SwUpdateHighErrorRate
+        exp_alerts:
+          - exp_labels: {severity: warning}
+            exp_annotations:
+              summary: "More than 5% of requests are failing with 5xx"
+              description: "5xx ratio is 10% over the last 5 minutes."
+
+  - name: devices out of sync
+    interval: 5m
+    input_series:
+      - series: 'swupdate_devices_out_of_sync'
+        values: '5x10'
+    alert_rule_test:
+      - eval_time: 40m
+        alertname: SwUpdateDevicesOutOfSync
+        exp_alerts:
+          - exp_labels: {severity: info}
+            exp_annotations:
+              summary: "5 lab devices are not on the master versions"
+              description: "More than 3 devices have at least one component different from master for 30 minutes."

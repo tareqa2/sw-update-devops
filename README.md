@@ -13,9 +13,12 @@ Minikube cluster
 │   ├── sw-backend-data  PVC 1Gi    (CSV files)
 │   ├── sw-backend-config  ConfigMap   sw-nginx-config  ConfigMap
 │   └── sw-backend-secret  Secret  (created by the pipeline / CLI - never in git)
-└── namespace gh-runner                (CI - k8s-runner/)
-    └── gh-runner  Deployment x1     self-hosted GitHub Actions runner
-        ServiceAccount + RBAC: may manage resources in sw-update only
+├── namespace gh-runner                (CI - k8s-runner/)
+│   └── gh-runner  Deployment x1     self-hosted GitHub Actions runner
+│       ServiceAccount + RBAC: may manage resources in sw-update only
+└── namespace monitoring               (observability - k8s-monitoring/)
+    ├── prometheus  Deployment + Service ClusterIP :9090   scrapes sw-backend /metrics, evaluates alert rules
+    └── grafana     Deployment + Service NodePort 30030    "SW Update Manager" dashboard, provisioned as code
 ```
 
 ## Design decisions
@@ -57,6 +60,8 @@ minikube service sw-nginx -n sw-update --url
 
 To deploy a specific build, set `newTag` in `k8s/kustomization.yaml` to that commit SHA and run `kubectl apply -k k8s/` again.
 
+> The pipeline sets `newTag` to the merged commit's SHA at deploy time (it does not commit it back). Before re-applying `k8s/` by hand, set `newTag` to the SHA you want, or you will roll back to the tag stored in git.
+
 ## CI runner (one-time setup)
 
 1. GitHub -> `sw-update` -> Settings -> Actions -> Runners -> **New self-hosted runner** -> Linux -> copy the token after `--token`.
@@ -77,6 +82,35 @@ kubectl auth can-i patch deployments -n kube-system --as=system:serviceaccount:g
 ```
 
 The registration token is single-use and expires after one hour. If the runner pod is ever recreated, create a fresh token, replace the Secret and run `kubectl -n gh-runner rollout restart deploy/gh-runner`.
+
+## Monitoring (Prometheus + Grafana)
+
+The backend exposes Prometheus metrics on `/metrics` (blocked at nginx, reachable only inside the cluster):
+
+| Metric | Type | Meaning |
+|---|---|---|
+| `swupdate_http_requests_total{method,endpoint,status}` | counter | Every HTTP request |
+| `swupdate_http_request_duration_seconds` | histogram | Request latency (for p50/p95) |
+| `swupdate_component_updates_total{device,component,action}` | counter | Upgrades / downgrades / no-change applied |
+| `swupdate_devices_out_of_sync` | gauge | Devices with any component off master |
+| `swupdate_app_info{version}` | gauge | Which build (commit SHA) is running |
+
+- **Discovery:** Prometheus finds the backend through the `prometheus.io/scrape` annotations on the `sw-backend` Service, via EndpointSlices. Its RBAC is a read-only **Role in `sw-update` only**.
+- **Alert rules** (`files/alerts.yml`): backend down, 5xx ratio above 5%, p95 latency above 500 ms, more than 3 devices out of sync. Unit-tested with `promtool test rules files/alerts_test.yml`.
+- **Grafana** is provisioned as code: data source, dashboard provider and the dashboard JSON come from ConfigMaps, so a fresh pod comes up with everything ready.
+- **configMapGenerator** adds a content hash to ConfigMap names, so editing a config file automatically rolls the pod.
+
+```powershell
+kubectl apply -f k8s-monitoring/namespace.yaml
+$pw = python -c "import secrets; print(secrets.token_urlsafe(16))"; echo "Grafana password: $pw"
+kubectl -n monitoring create secret generic grafana-admin --from-literal=username=admin --from-literal=password=$pw
+kubectl apply -k k8s-monitoring/
+kubectl -n monitoring rollout status deploy/prometheus
+kubectl -n monitoring rollout status deploy/grafana
+
+minikube service grafana -n monitoring --url                 # Grafana (log in as admin)
+kubectl -n monitoring port-forward svc/prometheus 9090:9090  # Prometheus -> http://localhost:9090/targets
+```
 
 ## Troubleshooting
 

@@ -1,0 +1,41 @@
+groups:
+  - name: sw-update
+    rules:
+      - alert: SwUpdateBackendDown
+        expr: up{job="sw-update-backend"} == 0 or absent(up{job="sw-update-backend"})
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "sw-update backend is not being scraped"
+          description: "No healthy sw-backend pod has answered /metrics for 1 minute."
+
+      - alert: SwUpdateHighErrorRate
+        expr: |
+          sum(rate(swupdate_http_requests_total{status=~"5.."}[5m]))
+            / clamp_min(sum(rate(swupdate_http_requests_total[5m])), 1e-9) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "More than 5% of requests are failing with 5xx"
+          description: "5xx ratio is {{ $value | humanizePercentage }} over the last 5 minutes."
+
+      - alert: SwUpdateSlowRequests
+        expr: |
+          histogram_quantile(0.95, sum by (le) (rate(swupdate_http_request_duration_seconds_bucket[5m]))) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "p95 latency above 500 ms"
+          description: "p95 request latency is {{ $value | humanizeDuration }}."
+
+      - alert: SwUpdateDevicesOutOfSync
+        expr: swupdate_devices_out_of_sync > 3
+        for: 30m
+        labels:
+          severity: info
+        annotations:
+          summary: "{{ $value }} lab devices are not on the master versions"
+          description: "More than 3 devices have at least one component different from master for 30 minutes."

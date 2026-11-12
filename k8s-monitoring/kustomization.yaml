@@ -1,0 +1,30 @@
+# Monitoring stack:  kubectl apply -k k8s-monitoring/
+# (create the grafana-admin Secret first - see README)
+#
+# configMapGenerator builds ConfigMaps from the files/ folder and adds a content hash
+# to their names. Editing a file -> new name -> Kubernetes rolls the pod automatically.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - prometheus-rbac.yaml
+  - prometheus.yaml
+  - grafana.yaml
+configMapGenerator:
+  - name: prometheus-config
+    namespace: monitoring
+    files:
+      - files/prometheus.yml
+      - files/alerts.yml
+  - name: grafana-datasources
+    namespace: monitoring
+    files:
+      - files/grafana-datasources.yml
+  - name: grafana-dashboard-provider
+    namespace: monitoring
+    files:
+      - files/grafana-dashboards.yml
+  - name: grafana-dashboards
+    namespace: monitoring
+    files:
+      - files/sw-update-dashboard.json
