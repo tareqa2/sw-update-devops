@@ -24,7 +24,8 @@ spec:
       automountServiceAccountToken: true   # needed: this IS how kubectl authenticates
       containers:
         - name: runner
-          image: myoung34/github-runner:2.333.1-ubuntu-noble   # pinned runner version
+          # GitHub retires old runner versions: keep this current (and let the runner self-update).
+          image: myoung34/github-runner:2.338.2-ubuntu-noble
           env:
             - name: REPO_URL
               value: https://github.com/tareqa2/sw-update
@@ -36,8 +37,6 @@ spec:
               value: minikube
             - name: RUNNER_WORKDIR
               value: /tmp/runner/work
-            - name: DISABLE_AUTO_UPDATE
-              value: "true"
             - name: RUNNER_TOKEN                 # one-time registration token, from a Secret
               valueFrom:
                 secretKeyRef:
