@@ -6,7 +6,7 @@
   ],
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 2,
+  "version": 4,
   "refresh": "10s",
   "time": {
     "from": "now-30m",
@@ -208,7 +208,7 @@
     {
       "id": 4,
       "type": "stat",
-      "title": "Updates applied (24h)",
+      "title": "Components changed (since deploy)",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -254,8 +254,167 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(increase(swupdate_component_updates_total{action!=\"no_change\"}[24h]))",
+          "expr": "sum(swupdate_component_updates_total{action!=\"no_change\"})",
           "legendFormat": "",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "type": "stat",
+      "title": "Updates applied from the web UI",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 6,
+        "h": 7
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "values": false,
+          "fields": ""
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum(swupdate_update_operations_total{channel=\"web\"})",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "type": "stat",
+      "title": "Updates applied via API (tests, scripts)",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 4,
+        "w": 6,
+        "h": 7
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "values": false,
+          "fields": ""
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum(swupdate_update_operations_total{channel=\"api\"})",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "type": "bargauge",
+      "title": "Web UI updates per device",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 4,
+        "w": 12,
+        "h": 7
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "green"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "showUnfilled": true,
+        "valueMode": "color",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "values": false,
+          "fields": ""
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (device) (swupdate_update_operations_total{channel=\"web\"})",
+          "legendFormat": "{{device}}",
           "instant": true
         }
       ]
@@ -270,7 +429,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 4,
+        "y": 11,
         "w": 12,
         "h": 8
       },
@@ -318,7 +477,7 @@
       },
       "gridPos": {
         "x": 12,
-        "y": 4,
+        "y": 11,
         "w": 12,
         "h": 8
       },
@@ -375,7 +534,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 12,
+        "y": 19,
         "w": 12,
         "h": 8
       },
@@ -423,7 +582,7 @@
       },
       "gridPos": {
         "x": 12,
-        "y": 12,
+        "y": 19,
         "w": 12,
         "h": 8
       },
@@ -471,7 +630,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 20,
+        "y": 27,
         "w": 12,
         "h": 9
       },
@@ -578,7 +737,7 @@
       },
       "gridPos": {
         "x": 12,
-        "y": 20,
+        "y": 27,
         "w": 12,
         "h": 9
       },
@@ -760,7 +919,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 29,
+        "y": 36,
         "w": 24,
         "h": 9
       },
