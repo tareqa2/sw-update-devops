@@ -1,0 +1,15 @@
+# Non-secret settings, injected into the backend as environment variables.
+# Changing a value here does NOT need a new image - only a rollout restart.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sw-backend-config
+  namespace: sw-update
+data:
+  DATA_DIR: /data
+  LOG_LEVEL: INFO
+  DEVICES: lab1,lab2,lab3,lab4,lab5,lab6,lab7,lab8,lab9,lab10
+  MASTER_OS: "15.2"
+  MASTER_BE: "11.3.30"
+  MASTER_DB: "12.0"
+  MASTER_FW: "3.6.0"

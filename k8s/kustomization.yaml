@@ -1,0 +1,19 @@
+# One command applies everything in the right order:  kubectl apply -k k8s/
+# The pipeline changes only newTag (to the commit SHA) before applying.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - backend-configmap.yaml
+  - backend-pvc.yaml
+  - backend-deployment.yaml
+  - backend-service.yaml
+  - nginx-configmap.yaml
+  - nginx-deployment.yaml
+  - nginx-service.yaml
+images:
+  - name: tareqelya12/sw-update
+    newTag: 61467fe
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: sw-update

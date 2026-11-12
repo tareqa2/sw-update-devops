@@ -1,0 +1,5 @@
+# never commit real secrets or local kube config
+*.secret.yaml
+secret.yaml
+.env
+kubeconfig*

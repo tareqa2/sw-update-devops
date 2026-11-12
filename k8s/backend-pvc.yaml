@@ -1,0 +1,12 @@
+# Disk for the CSV files. Outlives pods: delete the pod, the data stays.
+# Minikube's storage-provisioner addon creates the actual volume automatically.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: sw-backend-data
+  namespace: sw-update
+spec:
+  accessModes: ["ReadWriteOnce"]   # one node mounts it read-write
+  resources:
+    requests:
+      storage: 1Gi

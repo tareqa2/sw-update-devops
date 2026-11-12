@@ -1,0 +1,83 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sw-backend
+  namespace: sw-update
+  labels:
+    app: sw-backend
+spec:
+  # One replica: CSV files on a ReadWriteOnce volume must have a single writer.
+  replicas: 1
+  # Recreate (not RollingUpdate): stop the old pod before starting the new one,
+  # so two pods never write the same CSV files at the same time.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: sw-backend
+  template:
+    metadata:
+      labels:
+        app: sw-backend
+    spec:
+      automountServiceAccountToken: false     # the app never talks to the K8s API
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001                      # same UID as in the Dockerfile
+        runAsGroup: 10001
+        fsGroup: 10001                        # makes the mounted volume writable for that user
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: backend
+          image: tareqelya12/sw-update        # tag is set in kustomization.yaml (commit SHA)
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: sw-backend-config
+          env:
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: sw-backend-secret
+                  key: SECRET_KEY
+          resources:
+            requests:                         # what the scheduler reserves
+              cpu: 50m
+              memory: 128Mi
+            limits:                           # hard ceiling
+              cpu: 250m
+              memory: 256Mi
+          startupProbe:                       # give gunicorn time to boot before other probes start
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 2
+            failureThreshold: 15
+          livenessProbe:                      # hung process -> restart container
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+          readinessProbe:                     # storage not writable -> stop sending traffic
+            httpGet: { path: /readyz, port: http }
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true      # only /data and /tmp are writable
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: tmp
+              mountPath: /tmp                 # gunicorn needs a writable /tmp
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: sw-backend-data
+        - name: tmp
+          emptyDir: {}

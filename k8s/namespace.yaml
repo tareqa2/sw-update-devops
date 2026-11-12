@@ -1,0 +1,7 @@
+# Everything for the app lives in its own namespace: easy to find, isolate and delete.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: sw-update
+  labels:
+    app.kubernetes.io/part-of: sw-update

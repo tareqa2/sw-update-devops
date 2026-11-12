@@ -1,0 +1,21 @@
+# Stable DNS name "sw-backend" for the backend pod. ClusterIP = reachable
+# only inside the cluster: users must go through nginx.
+apiVersion: v1
+kind: Service
+metadata:
+  name: sw-backend
+  namespace: sw-update
+  labels:
+    app: sw-backend
+  annotations:                      # lets Prometheus discover and scrape /metrics
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8000"
+    prometheus.io/path: /metrics
+spec:
+  type: ClusterIP
+  selector:
+    app: sw-backend
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http

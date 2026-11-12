@@ -1,0 +1,18 @@
+# The only entry point from outside the cluster.
+# NodePort 30080 -> reach it with: minikube service sw-nginx -n sw-update --url
+apiVersion: v1
+kind: Service
+metadata:
+  name: sw-nginx
+  namespace: sw-update
+  labels:
+    app: sw-nginx
+spec:
+  type: NodePort
+  selector:
+    app: sw-nginx
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      nodePort: 30080
