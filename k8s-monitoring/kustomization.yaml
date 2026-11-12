@@ -10,6 +10,7 @@ resources:
   - prometheus-rbac.yaml
   - prometheus.yaml
   - grafana.yaml
+  - pushgateway.yaml
 configMapGenerator:
   - name: prometheus-config
     namespace: monitoring

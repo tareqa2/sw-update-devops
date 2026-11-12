@@ -11,6 +11,12 @@ scrape_configs:
     static_configs:
       - targets: ["localhost:9090"]
 
+  # Test results pushed by CI. honor_labels keeps the suite/commit labels from the push.
+  - job_name: pushgateway
+    honor_labels: true
+    static_configs:
+      - targets: ["pushgateway.monitoring.svc.cluster.local:9091"]
+
   # The app: any Service in sw-update annotated prometheus.io/scrape: "true".
   # Discovery goes through EndpointSlices, so every backend pod is scraped directly.
   - job_name: sw-update-backend
